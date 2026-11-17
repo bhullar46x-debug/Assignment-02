@@ -2,23 +2,24 @@
 
 Software Development Fundamentals - Final Assessment
 Implements an Object-Oriented Requisition System using Python classes and methods.
-Features:
-- Encapsulation of requisition information
-- Unique auto-incrementing ID tracking
-- Automatic approval for requisitions under $500
-- Manager response functionality (Approved, Not approved, Pending)
-- Requisition statistics tracking and reporting
+
+Key Features:
+- Encapsulates staff requisition data
+- Automatic sequential ID generation (starts at 10001)
+- Automatic approval threshold (< $500)
+- Manager review functionality for pending requests
+- Class-level statistical tracking (Total, Approved, Pending, Not approved)
 """
 
-# Global variable to track the unique requisition ID counter outside the __init__ method
-# As per Assessment 1, IDs start from 10000 + 1 (10001, 10002, ...)
+# Unique requisition ID counter outside the __init__ method
+# As per assessment requirements, ID generation starts from 10000 + 1 (10001, 10002, ...)
 requisition_id_counter = 10000
 
 
 class RequisitionSystem:
-    """Class to implement the functionality of the requisition system."""
+    """Class to manage and process purchase requisitions."""
 
-    # Class-level list to store all submitted requisition objects
+    # Class-level list to store all submitted requisition instances
     all_requisitions = []
 
     # Class-level counters to track system statistics
@@ -28,38 +29,38 @@ class RequisitionSystem:
     total_not_approved = 0
 
     def __init__(self, date="", staff_id="", staff_name=""):
-        """Initialize shared data for each requisition instance."""
+        """Initialize shared data for a requisition object."""
         global requisition_id_counter
         requisition_id_counter += 1
         self.requisition_id = requisition_id_counter
 
-        # Basic requisition information
+        # Basic details
         self.date = date
         self.staff_id = staff_id
         self.staff_name = staff_name
         self.items = []
         self.total = 0.0
 
-        # Default status is 'Pending'
+        # Status tracking (default is always 'Pending')
         self.status = "Pending"
         self.approval_reference = "Not available"
 
-        # Record this requisition and update statistics
+        # Register instance in the class list and update counters
         RequisitionSystem.all_requisitions.append(self)
         RequisitionSystem.total_submitted += 1
         RequisitionSystem.total_pending += 1
 
     def update_status(self, new_status):
-        """Helper method to update the status and adjust statistics accordingly.
+        """Update the requisition status and adjust summary statistics accordingly.
 
-        When a requisition moves from Pending to Approved or Not approved:
-        - pending count decreases by 1
-        - approved or not approved count increases by 1
+        When status transitions:
+        - Decrements the count of the previous status
+        - Increments the count of the new status
         """
         if self.status == new_status:
             return
 
-        # Deduct from previous status count
+        # Deduct from previous status counter
         if self.status == "Pending":
             RequisitionSystem.total_pending -= 1
         elif self.status == "Approved":
@@ -67,13 +68,13 @@ class RequisitionSystem:
         elif self.status == "Not approved":
             RequisitionSystem.total_not_approved -= 1
 
-        # Apply new status
+        # Assign new status
         self.status = new_status
 
-        # Add to new status count and update reference number
+        # Increment new status counter and update approval reference number
         if self.status == "Approved":
             RequisitionSystem.total_approved += 1
-            # Staff ID followed by the last three characters of the Requisition ID
+            # Staff ID + last 3 characters of Requisition ID
             last_three = str(self.requisition_id)[-3:]
             self.approval_reference = f"{self.staff_id}{last_three}"
         elif self.status == "Not approved":
@@ -84,16 +85,15 @@ class RequisitionSystem:
             self.approval_reference = "Not available"
 
     def requisitions_details(self, date=None, staff_id=None, staff_name=None, items=None):
-        """Submit basic information and accept items with their prices,
+        """Accept staff details and item costs, calculate the total cost, and return it.
 
-        then calculate and return the total cost.
-        Can be used interactively or with direct parameters.
+        Supports both automated batch assignment and interactive console input.
         """
-        # Set date, staff_id, staff_name if provided; otherwise ask user if missing
+        # Populate basic info
         if date is not None:
             self.date = date
         elif not self.date:
-            self.date = input("Enter Date: ")
+            self.date = input("Enter Date (DD/MM/YYYY): ")
 
         if staff_id is not None:
             self.staff_id = staff_id
@@ -120,7 +120,7 @@ class RequisitionSystem:
                     self.items.append({"name": name, "price": price})
                     self.total += price
         else:
-            # Interactive entry
+            # Interactive entry loop
             print("Add items:")
             while True:
                 item_name = input("Item Name: ")
@@ -129,7 +129,7 @@ class RequisitionSystem:
                         item_price = float(input("Item Price ($): "))
                         break
                     except ValueError:
-                        print("Invalid price. Please enter a numerical value.")
+                        print("Invalid price! Please enter a numerical value.")
 
                 self.items.append({"name": item_name, "price": item_price})
                 self.total += item_price
@@ -140,14 +140,14 @@ class RequisitionSystem:
 
         return self.total
 
-    # Method alias
+    # Method alias matching brief
     add_requisition = requisitions_details
 
     def approve_requisition(self):
-        """Decide if a requisition is approved based on the requisition total.
+        """Evaluate initial approval based on requisition total:
 
-        - If Total < $500: Automatically sets status to 'Approved'
-        - If Total >= $500: Sets/leaves status as 'Pending'
+        - Total < $500  -> 'Approved'
+        - Total >= $500 -> 'Pending'
         """
         if self.total < 500:
             self.update_status("Approved")
@@ -160,10 +160,9 @@ class RequisitionSystem:
     requisition_approval = approve_requisition
 
     def respond_requisition(self, decision):
-        """Allows a manager to respond to a pending requisition.
+        """Allow a manager to review a pending requisition and decide its status.
 
-        Parameters:
-            decision (str): 'Approved', 'Not approved', or 'Pending'
+        Accepts: 'Approved', 'Not approved', or 'Pending'.
         """
         decision_clean = decision.strip().lower()
 
@@ -174,13 +173,12 @@ class RequisitionSystem:
         elif "pending" in decision_clean:
             self.update_status("Pending")
         else:
-            print(f"Invalid decision '{decision}'. Status remained {self.status}.")
+            print(f"Unknown decision '{decision}'. Status remained {self.status}.")
 
         return self.status
 
     def display_requisition(self):
-        """Display information for this single requisition."""
-        # Format total cleanly (e.g. $450 if integer, or $450.50 if decimal)
+        """Print the formatted details of a single requisition."""
         if self.total.is_integer():
             total_display = f"${int(self.total)}"
         else:
@@ -196,14 +194,14 @@ class RequisitionSystem:
 
     @classmethod
     def display_requisitions(cls):
-        """Print information for all requisition objects."""
+        """Print formatted details for all requisition instances."""
         for req in cls.all_requisitions:
             req.display_requisition()
-            print()  # Empty line between requisitions as shown in brief
+            print()
 
     @classmethod
     def requisition_statistics(cls):
-        """Display and return the statistical information for all requisitions."""
+        """Display and return the system-wide requisition statistics."""
         print("Statistics:")
         print("Displaying the Requisition Statistics\n")
         print(f"The total number of requisitions submitted: {cls.total_submitted}\n")
@@ -224,89 +222,89 @@ Requisition = RequisitionSystem
 
 
 def main():
-    """Test the program by creating 5 instances and simulating manager responses."""
+    """Execute test demonstration with custom scenario instances."""
     print("=" * 65)
     print("REQUISITION SYSTEM: TEST SIMULATION")
     print("=" * 65)
 
     # -------------------------------------------------------------
-    # Step 1: Submit at least 5 requisitions (under $500 & >= $500)
+    # Step 1: Submit 5 unique requisitions with diverse totals
     # -------------------------------------------------------------
     print("\n--- Submitting 5 Requisitions ---\n")
 
-    # Requisition 1: Total < $500 -> Auto-Approved
+    # Instance 1: Total < $500 -> Auto-Approved
     req1 = RequisitionSystem()
     req1.requisitions_details(
-        date="03/04/2024",
-        staff_id="FN19",
-        staff_name="John Paul",
-        items=[("Office Supplies", 250), ("Coffee", 200)]  # Total = $450
+        date="12/08/2024",
+        staff_id="MK12",
+        staff_name="Mehak Sharma",
+        items=[("Wireless Mouse", 60), ("Mechanical Keyboard", 120), ("Desk Mat", 45)]  # Total = $225
     )
     req1.approve_requisition()
 
-    # Requisition 2: Total >= $500 -> Pending
+    # Instance 2: Total >= $500 -> Pending initially
     req2 = RequisitionSystem()
     req2.requisitions_details(
-        date="05/04/2024",
-        staff_id="FN20",
-        staff_name="Tracy Brown",
-        items=[("Office Desk", 700), ("Ergonomic Chair", 300)]  # Total = $1000
+        date="15/08/2024",
+        staff_id="AK24",
+        staff_name="Ashanjot Kaur",
+        items=[("Dual Monitors", 720), ("Monitor Stand", 130), ("HDMI Cables", 50)]  # Total = $900
     )
     req2.approve_requisition()
 
-    # Requisition 3: Total >= $500 -> Pending
+    # Instance 3: Total >= $500 -> Pending initially
     req3 = RequisitionSystem()
     req3.requisitions_details(
-        date="07/05/2024",
-        staff_id="FN15",
-        staff_name="Emma Wellington",
-        items=[("High-End Server", 3000), ("Network Switch", 500)]  # Total = $3500
+        date="22/08/2024",
+        staff_id="NS07",
+        staff_name="Navjeet Singh",
+        items=[("Developer Workstation", 2400), ("32GB RAM Upgrade", 450)]  # Total = $2850
     )
     req3.approve_requisition()
 
-    # Requisition 4: Total < $500 -> Auto-Approved
+    # Instance 4: Total < $500 -> Auto-Approved
     req4 = RequisitionSystem()
     req4.requisitions_details(
-        date="03/05/2024",
-        staff_id="FN02",
-        staff_name="Catlin White",
-        items=[("Printer Cartridges", 340), ("Paper Bundles", 150)]  # Total = $490
+        date="04/09/2024",
+        staff_id="GG18",
+        staff_name="Gurpal Gill",
+        items=[("IDE Software License", 320), ("USB-C Docking Station", 110)]  # Total = $430
     )
     req4.approve_requisition()
 
-    # Requisition 5: Total >= $500 -> Pending
+    # Instance 5: Total >= $500 -> Pending initially
     req5 = RequisitionSystem()
     req5.requisitions_details(
-        date="10/05/2024",
-        staff_id="FN08",
-        staff_name="David Miller",
-        items=[("Laptop", 650), ("Backpack", 100)]  # Total = $750
+        date="18/09/2024",
+        staff_id="SV31",
+        staff_name="Simran Verma",
+        items=[("Motorized Standing Desk", 680), ("Ergonomic Footrest", 80)]  # Total = $760
     )
     req5.approve_requisition()
 
     # -------------------------------------------------------------
-    # Step 2: Display Statistics after initial submissions
+    # Step 2: Show initial statistics
     # -------------------------------------------------------------
     print("--- Statistics Immediately After Submission ---")
     RequisitionSystem.requisition_statistics()
 
     # -------------------------------------------------------------
-    # Step 3: Manager responds to requisitions with total >= $500
+    # Step 3: Manager reviews pending requisitions (>= $500)
     # -------------------------------------------------------------
     print("=" * 65)
     print("MANAGER RESPONSES TO PENDING REQUISITIONS (>= $500)")
     print("=" * 65)
 
-    # Manager approves Requisition 2 ($1000)
-    print("\n[Manager Action] Approving Requisition 10002 ($1000)...")
+    # Manager approves Ashanjot's request ($900)
+    print("\n[Manager Action] Approving Requisition 10002 for Ashanjot Kaur ($900)...")
     req2.respond_requisition("Approved")
 
-    # Manager rejects Requisition 3 ($3500)
-    print("[Manager Action] Rejecting Requisition 10003 ($3500)...")
+    # Manager rejects Navjeet's request ($2850)
+    print("[Manager Action] Rejecting Requisition 10003 for Navjeet Singh ($2850)...")
     req3.respond_requisition("Not approved")
 
-    # Manager leaves Requisition 5 ($750) as Pending
-    print("[Manager Action] Leaving Requisition 10005 ($750) as Pending...")
+    # Manager leaves Simran's request ($760) pending further budget check
+    print("[Manager Action] Leaving Requisition 10005 for Simran Verma ($760) as Pending...")
     req5.respond_requisition("Pending")
 
     # -------------------------------------------------------------
