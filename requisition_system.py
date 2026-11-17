@@ -9,6 +9,7 @@ Key Features:
 - Automatic approval threshold (< $500)
 - Manager review functionality for pending requests
 - Class-level statistical tracking (Total, Approved, Pending, Not approved)
+- Input validation to handle non-numeric prices gracefully
 """
 
 # Unique requisition ID counter outside the __init__ method
@@ -74,7 +75,7 @@ class RequisitionSystem:
         # Increment new status counter and update approval reference number
         if self.status == "Approved":
             RequisitionSystem.total_approved += 1
-            # Staff ID + last 3 characters of Requisition ID
+            # Fix for Error 1: String conversion prevents TypeError when slicing
             last_three = str(self.requisition_id)[-3:]
             self.approval_reference = f"{self.staff_id}{last_three}"
         elif self.status == "Not approved":
@@ -120,7 +121,7 @@ class RequisitionSystem:
                     self.items.append({"name": name, "price": price})
                     self.total += price
         else:
-            # Interactive entry loop
+            # Fix for Error 3: Wrapped inside try...except ValueError loop
             print("Add items:")
             while True:
                 item_name = input("Item Name: ")
@@ -163,6 +164,7 @@ class RequisitionSystem:
         """Allow a manager to review a pending requisition and decide its status.
 
         Accepts: 'Approved', 'Not approved', or 'Pending'.
+        Fix for Error 2: Delegates to update_status to keep statistics synchronized.
         """
         decision_clean = decision.strip().lower()
 
